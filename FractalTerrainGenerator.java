@@ -93,6 +93,14 @@ public class FractalTerrainGenerator {
 
             // Writing normals
             for (int z = 0; z < size; z++) {
+                for (int x = 0; x < size; x++) {
+                    float[] normal = normals[x][z];
+                    writer.write("vn " + normal[0] + " " + normal[1] + " " + normal[2] + "\n");
+                }
+            }
+
+            // Writing faces (triangles)
+            for (int z = 0; z < size; z++) {
                 for (int x = 0; x < size - 1; x++) {
                     int topLeft = (z * size) + x + 1;
                     int topRight = topLeft + 1;
