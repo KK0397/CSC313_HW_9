@@ -100,7 +100,7 @@ public class FractalTerrainGenerator {
             }
 
             // Writing faces (triangles)
-            for (int z = 0; z < size; z++) {
+            for (int z = 0; z < size - 1; z++) {
                 for (int x = 0; x < size - 1; x++) {
                     int topLeft = (z * size) + x + 1;
                     int topRight = topLeft + 1;
@@ -127,7 +127,7 @@ public class FractalTerrainGenerator {
         static {
             for (int i = 0; i < GRADIENT_SIZE_TABLE; i++) {
                 double angle = Math.PI * 2 * i / GRADIENT_SIZE_TABLE;
-                GRADIENTS_2D[i * 2] = (float)Math.cos(angle);
+                GRADIENTS_2D[i * 2] = (float) Math.cos(angle);
                 GRADIENTS_2D[i * 2 + 1] = (float) Math.sin(angle);
             }
 
