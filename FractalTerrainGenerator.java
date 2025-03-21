@@ -1,24 +1,91 @@
-// javac FractalTerrainGenerator.java
-// java FractalTerrainGenerator
-
 import java.io.BufferedWriter;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.util.Random;
+import java.util.Scanner;
 
 public class FractalTerrainGenerator {
     private static final int SIZE = 256;    // Grid size
     private static final float SCALE = 50f;     // Controls steepness of terrain
     private static final float ROUGHNESS = 0.5f;    // Determines fractal variation
+    private static float[][] heightMap;
 
     public static void main(String[] args) {
-        float[][] heightMap = generateHeightMap(SIZE, SCALE, ROUGHNESS);
-        try {
-            saveToObjFile("fractal_terrain.obj", heightMap);
-            System.out.println("Terrain saved as fractal_terrain.obj");
+        heightMap = generateHeightMap(SIZE, SCALE, ROUGHNESS);
+        Scanner inputScanner = new Scanner(System.in);
+
+        while (true) {
+            System.out.println("Choose an action: (1) Elevate terrain, (2) Depress terrain, (3) Level terrain, (4) Save and exit");
+            int userAction = inputScanner.nextInt();
+
+            if (userAction == 4) {
+                try {
+                    saveToObjFile("fractal_terrain.obj", heightMap);
+                    System.out.println("Terrain saved as fractal_terrain.obj");
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+                break;
+            }
+
+            System.out.println("Enter the center X coordinate (0-" + (SIZE - 1) + "):");
+            int centerX = inputScanner.nextInt();
+            System.out.println("Enter the center Z coordinate (0-" + (SIZE - 1) + "):");
+            int centerZ = inputScanner.nextInt();
+            System.out.println("Enter the radius of the area to modify:");
+            int modificationRadius = inputScanner.nextInt();
+
+            switch (userAction) {
+                case 1:
+                    System.out.println("Enter the strength of the elevation (e.g., 1.0 for small, 10.0 for large):");
+                    float elevationStrength = inputScanner.nextFloat();
+                    elevateTerrain(centerX, centerZ, modificationRadius, elevationStrength);
+                    break;
+                case 2:
+                    System.out.println("Enter the strength of the depression (e.g., 1.0 for small, 10.0 for large):");
+                    float depressionStrength = inputScanner.nextFloat();
+                    depressTerrain(centerX, centerZ, modificationRadius, depressionStrength);
+                    break;
+                case 3:
+                    levelTerrain(centerX, centerZ, modificationRadius);
+                    break;
+                default:
+                    System.out.println("Invalid action.");
+            }
         }
-        catch (IOException e) {
-            e.printStackTrace();
+
+        inputScanner.close();
+    }
+
+    private static void elevateTerrain(int x, int z, int radius, float strength) {
+        adjustTerrain(x, z, radius, 0.1f * strength);
+    }
+
+    private static void depressTerrain(int x, int z, int radius, float strength) {
+        adjustTerrain(x, z, radius, -0.1f * strength);
+    }
+
+    private static void levelTerrain(int x, int z, int radius) {
+        float targetHeight = heightMap[x][z];
+        for (int i = Math.max(0, x - radius); i < Math.min(SIZE, x + radius); i++) {
+            for (int j = Math.max(0, z - radius); j < Math.min(SIZE, z + radius); j++) {
+                float distance = (float) Math.sqrt((i - x) * (i - x) + (j - z) * (j - z));
+                if (distance <= radius) {
+                    heightMap[i][j] = targetHeight;
+                }
+            }
+        }
+    }
+
+    private static void adjustTerrain(int x, int z, int radius, float amount) {
+        for (int i = Math.max(0, x - radius); i < Math.min(SIZE, x + radius); i++) {
+            for (int j = Math.max(0, z - radius); j < Math.min(SIZE, z + radius); j++) {
+                float distance = (float) Math.sqrt((i - x) * (i - x) + (j - z) * (j - z));
+                if (distance <= radius) {
+                    float falloff = 1 - (distance / radius);
+                    heightMap[i][j] += amount * falloff;
+                }
+            }
         }
     }
 
@@ -100,7 +167,7 @@ public class FractalTerrainGenerator {
             }
 
             // Writing faces (triangles)
-            for (int z = 0; z < size - 1; z++) {
+            for (int z = 0; z < size; z++) {
                 for (int x = 0; x < size - 1; x++) {
                     int topLeft = (z * size) + x + 1;
                     int topRight = topLeft + 1;
@@ -145,7 +212,7 @@ public class FractalTerrainGenerator {
 
             // Duplicate the permutation table
             for (int i = 0; i < GRADIENT_SIZE_TABLE; i++) {
-                PERM[GRADIENT_SIZE_TABLE + 1] = PERM[i];
+                PERM[GRADIENT_SIZE_TABLE + i] = PERM[i];
             }
         }
 
@@ -156,7 +223,7 @@ public class FractalTerrainGenerator {
             int j = fastFloor(yin + s);
             float t = (i + j) * G2;     // Unskew factor for 2D
             float X0 = i - t;   // Unskewed x-coordinate of grid origin
-            float Y0 = j - t;   // Unskewed y=coordinate of grid origin
+            float Y0 = j - t;   // Unskewed y-coordinate of grid origin
             float x0 = xin - X0;    // Distance from origin in x
             float y0 = yin - Y0;    // Distance from origin in y
 
@@ -165,8 +232,7 @@ public class FractalTerrainGenerator {
             if (x0 > y0) {
                 i1 = 1;
                 j1 = 0;
-            }
-            else {
+            } else {
                 i1 = 0;
                 j1 = 1;
             }
@@ -193,8 +259,7 @@ public class FractalTerrainGenerator {
             float t0 = 0.5f - x0 * x0 - y0 * y0;
             if (t0 < 0) {
                 n0 = 0.0f;
-            }
-            else {
+            } else {
                 t0 *= t0;
                 n0 = t0 * t0 * dot(gi0, x0, y0);
             }
@@ -203,8 +268,7 @@ public class FractalTerrainGenerator {
             float t1 = 0.5f - x1 * x1 - y1 * y1;
             if (t1 < 0) {
                 n1 = 0.0f;
-            }
-            else {
+            } else {
                 t1 *= t1;
                 n1 = t1 * t1 * dot(gi1, x1, y1);
             }
@@ -213,8 +277,7 @@ public class FractalTerrainGenerator {
             float t2 = 0.5f - x2 * x2 - y2 * y2;
             if (t2 < 0) {
                 n2 = 0.0f;
-            }
-            else {
+            } else {
                 t2 *= t2;
                 n2 = t2 * t2 * dot(gi2, x2, y2);
             }
